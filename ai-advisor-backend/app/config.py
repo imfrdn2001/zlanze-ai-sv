@@ -33,7 +33,7 @@ class Settings(BaseSettings):
         "mssql+pymssql://zlanze_ai_reader:"
         "ChangeThisReaderPassword_2026!@localhost:1433/ZLANZE_PROD"
     )
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = ""
     context_ttl_seconds: int = _CONFIG["context_ttl_seconds"]
     max_developers: int = _TALENT["max_developers"]
     marketplace_currency: str = _TALENT["marketplace_currency"]

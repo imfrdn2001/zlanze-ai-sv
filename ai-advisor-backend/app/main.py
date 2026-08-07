@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Settings, get_settings
-from app.context import RedisContextStore
+from app.context import ContextStore, InMemoryContextStore, RedisContextStore
 from app.database import create_database_engine
 from app.llm import GeminiExtractor, LLMConfigurationError, LLMResponseError
 from app.logging_config import configure_logging
@@ -28,7 +28,13 @@ async def lifespan(app: FastAPI):
         settings.log_max_bytes,
         settings.log_backup_count,
     )
-    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    redis = None
+    context_store: ContextStore | None = None
+    if settings.redis_url:
+        redis = Redis.from_url(settings.redis_url, decode_responses=True)
+        context_store = RedisContextStore(redis, settings.context_ttl_seconds)
+    else:
+        context_store = InMemoryContextStore(settings.context_ttl_seconds)
     engine = None
     if settings.talent_data_source.lower() == "json":
         repository = JsonCandidateRepository(
@@ -46,7 +52,7 @@ async def lifespan(app: FastAPI):
     app.state.engine = engine
     app.state.http_client = http_client
     app.state.advisor = AdvisorService(
-        RedisContextStore(redis, settings.context_ttl_seconds),
+        context_store,
         GeminiExtractor(settings.gemini_api_key, settings.gemini_model, http_client),
         repository,
         settings.max_developers,
@@ -54,7 +60,8 @@ async def lifespan(app: FastAPI):
     )
     yield
     await http_client.aclose()
-    await redis.aclose()
+    if redis is not None:
+        await redis.aclose()
     if engine is not None:
         engine.dispose()
 
@@ -93,7 +100,10 @@ async def health(request: Request) -> dict[str, object]:
         except SQLAlchemyError:
             pass
     try:
-        checks["redis"] = bool(await request.app.state.redis.ping())
+        if request.app.state.redis is None:
+            checks["redis"] = True
+        else:
+            checks["redis"] = bool(await request.app.state.redis.ping())
     except Exception:
         pass
     healthy = all(checks.values())

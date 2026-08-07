@@ -67,6 +67,45 @@ curl -X POST http://localhost:8001/chat \
 Without `GEMINI_API_KEY`, health checks still work but `/chat` returns a clear
 503 configuration response.
 
+## Deploy to Azure Web App (Python runtime)
+
+Deploy only the `ai-advisor-backend/` folder as the app root (e.g. via `az webapp
+deploy --src-path .` from this directory, or a GitHub Action that uploads this
+folder).
+
+### What the repo already provides
+
+- `requirements.txt` for the Oryx Python build — no Docker required.
+- No hard dependency on Redis: with no `REDIS_URL` configured the service uses
+  an in-memory context store, so it runs on a single App Service instance
+  without extra infrastructure. Conversation context resets on restart or
+  scale-out; configure Azure Cache for Redis (`REDIS_URL`) when you need
+  persisted context across instances.
+- Default `talent_data_source` is `json`, so the bundled candidate profiles are
+  used and no SQL Server connection is required.
+
+### App Settings to configure
+
+Set these in the Azure portal (Configuration → Application settings):
+
+| Setting                  | Value                                                          |
+| ------------------------ | -------------------------------------------------------------- |
+| `GEMINI_API_KEY`         | your Gemini API key                                            |
+| `DATABASE_URL`           | only if you switch `TALENT_DATA_SOURCE` to `sql`               |
+| `REDIS_URL`              | only if you use Azure Cache for Redis                          |
+| `CORS_ORIGINS`           | comma-separated allowed frontend origins (overrides config)    |
+
+### Startup command
+
+Azure's Python build starts with gunicorn by default, but this is an ASGI app,
+so set the **Startup Command** in the App Service configuration to:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Health check: `GET /health`. Docs: `GET /docs`.
+
 ## Test the advisor without running the API
 
 The restored SQL Server must be running, but FastAPI and Redis are not needed:
