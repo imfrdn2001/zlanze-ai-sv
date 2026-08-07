@@ -1,0 +1,38 @@
+services:
+  api:
+    build: .
+    container_name: zlanze-ai-advisor-api
+    env_file:
+      - .env
+    networks:
+      - default
+      - database
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: zlanze-ai-advisor-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+
+networks:
+  database:
+    external: true
+    name: database_default
