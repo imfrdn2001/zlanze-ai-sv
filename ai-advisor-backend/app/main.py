@@ -19,6 +19,7 @@ from app.schemas import ChatRequest, ChatResponse
 from app.service import AdvisorService
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
