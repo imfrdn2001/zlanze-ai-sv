@@ -1,0 +1,25 @@
+{
+  "app_env": "development",
+  "logging": {
+    "level": "INFO",
+    "file": "logs/advisor.jsonl",
+    "max_bytes": 10485760,
+    "backup_count": 5,
+    "log_chat_content": true
+  },
+  "talent": {
+    "data_source": "json",
+    "candidate_profiles_file": "candidate_profiles-01 3.json",
+    "max_developers": 5,
+    "marketplace_currency": "INR"
+  },
+  "gemini_model": "gemini-3.5-flash-lite",
+  "context_ttl_seconds": 1800,
+  "sql_query_timeout_seconds": 10,
+  "cors_origins": [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001"
+  ]
+}
